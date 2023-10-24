@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)DLLImporter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ApiReference.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NestedNamespace.cs" />
   </ItemGroup>
 </Project>

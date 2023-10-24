@@ -7,11 +7,7 @@ namespace ApiRef.Debug
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Digite o caminho da biblioteca (DLL): ");
-
-            string path = Console.ReadLine();
-            NestedNamespace namespaces = DLLImporter.Import(path, true);
-
+            //ApiReference.Generate(@"", "ref", true);
             Console.ReadLine();
         }
     }
