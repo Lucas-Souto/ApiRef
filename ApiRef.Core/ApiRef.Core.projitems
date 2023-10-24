@@ -9,5 +9,7 @@
     <Import_RootNamespace>ApiRef.Core</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)DLLImporter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NestedNamespace.cs" />
   </ItemGroup>
 </Project>
