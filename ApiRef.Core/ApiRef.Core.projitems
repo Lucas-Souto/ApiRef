@@ -11,6 +11,10 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)DLLImporter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ApiReference.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Format\FormatTools.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Format\MarkdownBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Format\XMLFormatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NestedNamespace.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Options.cs" />
   </ItemGroup>
 </Project>

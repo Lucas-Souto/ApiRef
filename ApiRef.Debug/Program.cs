@@ -7,7 +7,7 @@ namespace ApiRef.Debug
     {
         static void Main(string[] args)
         {
-            //ApiReference.Generate(@"", "ref", true);
+            new ApiReference(new Options()).Generate();
             Console.ReadLine();
         }
     }

@@ -2,6 +2,7 @@
 using System.Text;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ApiRef.Core
 {
@@ -10,8 +11,17 @@ namespace ApiRef.Core
     /// </summary>
     public static class DLLImporter
     {
-        private const BindingFlags PublicFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
-        private const BindingFlags AllFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy;
+        private const BindingFlags PublicFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        private const BindingFlags AllFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        private static readonly Dictionary<MemberTypes, int> MemberOrder = new Dictionary<MemberTypes, int>
+        {
+            { MemberTypes.Constructor, 0 },
+            { MemberTypes.Field, 1 },
+            { MemberTypes.Property, 2 },
+            { MemberTypes.Event, 3 },
+            { MemberTypes.Method, 4 },
+            { MemberTypes.NestedType, 5 }
+        };
 
         /// <summary>
         /// Retorna os namespaces de uma biblioteca.
@@ -21,7 +31,7 @@ namespace ApiRef.Core
         {
             Assembly dll = Assembly.LoadFile(path);
             Type[] types;
-            NestedNamespace namespaces = new NestedNamespace();
+            NestedNamespace namespaces = new NestedNamespace(string.Empty);
 
             if (filterPublic) types = dll.GetExportedTypes();
             else types = dll.GetTypes();
@@ -38,16 +48,18 @@ namespace ApiRef.Core
         {
             if (index == fullNameSpace.Length - 1)
             {
-                NestedNamespace newSpace = new NestedNamespace() { Type = type };
-                MemberInfo[] members = type.GetMembers(filterPublic ? PublicFlag : AllFlag);
+                NestedNamespace newSpace = new NestedNamespace(Namespace(currentSpace.FullName, type.Name), type);
+                IEnumerable<MemberInfo> members = type.GetMembers(filterPublic ? PublicFlag : AllFlag).OrderBy((m) => MemberOrder[m.MemberType]);
 
                 currentSpace.Child.Add(fullNameSpace[fullNameSpace.Length - 1], newSpace);
 
-                for (int i = 0; i < members.Length; i++)
+                foreach (MemberInfo member in members)
                 {
-                    string result = members[i].Stringfy();
+                    if (type.IsEnum && (member.Name == "value__" || member.MemberType != MemberTypes.Field)) continue;
 
-                    if (result.Length > 0) newSpace.Child[result] =  new NestedNamespace() { MemberInfo = members[i] };
+                    string result = member.Stringfy();
+
+                    if (result.Length > 0) newSpace.Child[result] = new NestedNamespace(Namespace(newSpace.FullName, member.Name), member);
                 }
             }
             else
@@ -56,7 +68,7 @@ namespace ApiRef.Core
 
                 if (!currentSpace.Child.TryGetValue(fullNameSpace[index], out nextSpace))
                 {
-                    nextSpace = new NestedNamespace();
+                    nextSpace = new NestedNamespace(Namespace(currentSpace.FullName, fullNameSpace[index]));
 
                     currentSpace.Child.Add(fullNameSpace[index], nextSpace);
                 }
@@ -97,9 +109,12 @@ namespace ApiRef.Core
                 }
 
                 if (method.IsStatic && method.Name.StartsWith("op_")) builder.AppendFormat("~{0}", ((MethodInfo)method).ReturnType.FullName);
+                else if (member is MethodInfo methodInfo && methodInfo.IsSpecialName) return string.Empty;
             }
             else if (member.MemberType != MemberTypes.TypeInfo && member.MemberType != MemberTypes.NestedType)
             {
+                if (member.Name.EndsWith(">k__BackingField")) return string.Empty;
+
                 builder.Append(member.Name);
 
                 if (member is PropertyInfo property)
@@ -188,6 +203,16 @@ namespace ApiRef.Core
             else if (type.IsByRef) builder.Append('@');
 
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// Formata um namespace composto por um ou mais namespaces.
+        /// </summary>
+        private static string Namespace(string previous, string current)
+        {
+            if (previous.Length > 0) return string.Format("{0}.{1}", previous, current);
+
+            return current;
         }
     }
 }
