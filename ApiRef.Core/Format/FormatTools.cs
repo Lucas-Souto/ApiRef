@@ -125,7 +125,7 @@ namespace ApiRef.Core.Format
             else
             {
                 if (NativeTypes.TryGetValue(type.FullName, out string native)) builder.Append(native);
-                else if (type == declaring || type.DeclaringType == declaring) builder.Append(type.Name);
+                else if (type == declaring || (declaring != null && type.DeclaringType == declaring)) builder.Append(type.Name);
                 else builder.Append(type.FullName);
             }
 
