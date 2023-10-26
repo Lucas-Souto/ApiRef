@@ -9,7 +9,9 @@ namespace ApiRef.Core
     /// </summary>
     public class Options
     {
-        public bool FilterPublic;
-        public string LibraryPath, OutputDirectory, RootPath;
+        public bool FilterPublic = true;
+        public string LibraryPath = @"C:\Users\Lucas\Desktop\Claw Engine\Claw\Claw.dll",
+            OutputDirectory = @"C:\Users\Lucas\Desktop\ClawDocs\API",
+            RootPath = "/API";
     }
 }

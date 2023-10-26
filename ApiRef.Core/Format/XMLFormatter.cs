@@ -110,10 +110,14 @@ namespace ApiRef.Core.Format
                         case "c": builder.InsertInlineCode(child.Value); break;
                         case "code": builder.InsertCode(child.Value); break;
                         case "para":
+                            if (i > 0 && node.ChildNodes[i - 1].Name != child.Name) builder.InsertBr();
+
                             FormatText(child, docs, builder, namespaces, rootDirectory);
                             builder.InsertBr();
                             break;
-                        case "#text": builder.InsertText(child.Value.Trim('\r', '\n', '\t', ' ')); break;
+                        case "#text": case "value":
+                            builder.InsertText(child.Value.Trim('\r', '\n', '\t', ' '));
+                            break;
                         case "see": case "seealso":
                             if (child.Name == "seealso")
                             {
@@ -129,11 +133,24 @@ namespace ApiRef.Core.Format
 
                                 if (attribute.Name == "href") builder.InsertLink(child.InnerText.Length > 0 ? child.InnerText : attribute.Value, attribute.Value);
                                 else InsertRefLink(attribute.Value, namespaces, builder, rootDirectory);
+
+                                builder.InsertText(" ");
+                            }
+                            break;
+                        case "paramref": case "typeparamref":
+                            if (child.Attributes.Count > 0)
+                            {
+                                XmlAttribute attribute = child.Attributes[0];
+
+                                builder.InsertText(" ");
+                                builder.InsertInlineCode(attribute.Value);
+                                builder.InsertText(" ");
                             }
                             break;
                     }
                 }
             }
+            else if (node.NodeType == XmlNodeType.Text) builder.InsertText(node.Value.Trim('\r', '\n', '\t', ' '));
             else builder.InsertText(node.InnerText.Trim());
         }
         
@@ -148,17 +165,25 @@ namespace ApiRef.Core.Format
 
             fullNamespace = fullNamespace.Substring(2);
             string[] splitted = fullNamespace.Split('.');
-            string text = string.Empty;
+            string text = string.Empty, title = string.Empty;
 
             FindMember(namespaces, splitted, out NestedNamespace type, out NestedNamespace last);
 
             if (last == namespaces || type == namespaces) builder.InsertText("[Não encontrado!]");
             else
             {
-                if (last.Type != null) text = FormatTools.TypeAsString(last.Type, type.Type);
-                else if (last.MemberInfo != null) text = string.Format("{0}.{1}", FormatTools.TypeAsString(last.MemberInfo.DeclaringType, type.Type), FormatTools.GetMemberName(last.MemberInfo));
+                if (last.Type != null)
+                {
+                    text = FormatTools.TypeAsString(last.Type, type.Type);
+                    title = text;
+                }
+                else if (last.MemberInfo != null)
+                {
+                    title = FormatTools.GetMemberName(last.MemberInfo);
+                    text = string.Format("{0}.{1}", FormatTools.TypeAsString(last.MemberInfo.DeclaringType, type.Type), title);
+                }
 
-                builder.InsertLink(text, string.Format("{0}/{1}", rootDirectory, type.Type.FullName.Replace('.', '/')), text.Replace("<", "\\<"));
+                builder.InsertLink(text, string.Format("{0}/{1}", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
             }
         }
         private static void FindMember(NestedNamespace namespaces, string[] splittedNamespace, out NestedNamespace type, out NestedNamespace last)

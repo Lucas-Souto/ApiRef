@@ -153,6 +153,24 @@ namespace ApiRef.Core.Format
                     }
 
                     return method.Name;
+                case MemberTypes.Property:
+                    PropertyInfo property = (PropertyInfo)member;
+                    StringBuilder builder = new StringBuilder();
+                    ParameterInfo[] parameters = property.GetIndexParameters();
+
+                    if (parameters.Length > 0)
+                    {
+                        builder.Append(TypeAsString(member.DeclaringType, member.DeclaringType));
+                        builder.Append('[');
+
+                        for (int i = 0; i < parameters.Length; i++) builder.AppendFormat("{0} {1}, ", TypeAsString(parameters[i].ParameterType, member.DeclaringType), parameters[i].Name);
+
+                        builder.Remove(builder.Length - 2, 2);
+                        builder.Append(']');
+                    }
+                    else builder.Append(property.Name);
+
+                    return builder.ToString();
                 default: return member.Name;
             }
         }
@@ -179,7 +197,8 @@ namespace ApiRef.Core.Format
         {
             builder.Append(GetAccessType(field.IsPublic, field.IsFamily, field.IsAssembly));
 
-            if (field.IsStatic) builder.Append(" static");
+            if (field.IsLiteral) builder.Append(" const");
+            else if (field.IsStatic) builder.Append(" static");
 
             if (field.IsInitOnly) builder.Append(" readonly");
 
@@ -198,20 +217,9 @@ namespace ApiRef.Core.Format
             else if (!declaringType.IsInterface && (get != null && get.IsVirtual) || (set != null && set.IsVirtual)) builder.Append(" virtual");
 
             string type = TypeAsString(property.PropertyType, declaringType);
-            ParameterInfo[] parameters = property.GetIndexParameters();
 
-            if (parameters.Length > 0)
-            {
-                builder.AppendFormat(" {0} ", type);
-                builder.Append(declaringType.Name);
-                builder.Append('[');
-
-                for (int i = 0; i < parameters.Length; i++) builder.AppendFormat("{0} {1}, ", TypeAsString(parameters[i].ParameterType, declaringType), parameters[i].Name);
-
-                builder.Remove(builder.Length - 2, 2);
-                builder.Append(']');
-            }
-            else builder.AppendFormat(" {0} {1}", type, property.Name);
+            builder.AppendFormat(" {0} ", type);
+            builder.Append(GetMemberName(property));
 
             builder.Append(" { ");
 

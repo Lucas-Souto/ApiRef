@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Xml;
-using System.Text;
 using System.Reflection;
 using System.Collections.Generic;
 using ApiRef.Core.Format;
@@ -13,6 +12,7 @@ namespace ApiRef.Core
     /// </summary>
     public class ApiReference
     {
+        private string a { get; set; }
         private Options options;
         private NestedNamespace namespaces;
 
@@ -90,7 +90,7 @@ namespace ApiRef.Core
 
                         member.FormatSummary(docs, tempMD, namespaces, options.RootPath, false);
 
-                        description = tempMD.ToString();
+                        description = tempMD.ToString().Replace("\r", "").Replace("\n", "<br />");
                     }
 
                     md.InsertToTable(current.MemberInfo.Name, Convert.ChangeType(info.GetValue(null), Enum.GetUnderlyingType(info.FieldType)).ToString(), description);
