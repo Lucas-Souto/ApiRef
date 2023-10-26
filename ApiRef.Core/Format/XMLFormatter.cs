@@ -192,7 +192,7 @@ namespace ApiRef.Core.Format
                     text = string.Format("{0}.{1}", FormatTools.TypeAsString(last.MemberInfo.DeclaringType, type.Type), title);
                 }
 
-                builder.InsertLink(text, string.Format("{0}/{1}", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
+                builder.InsertLink(text, string.Format("{0}/{1}.md", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
             }
         }
         private static void FindMember(NestedNamespace namespaces, string[] splittedNamespace, out NestedNamespace type, out NestedNamespace last)
