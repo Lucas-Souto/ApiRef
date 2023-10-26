@@ -14,6 +14,7 @@ namespace ApiRef.Core
     public class ApiReference
     {
         private Options options;
+        private NestedNamespace namespaces;
 
         public ApiReference(Options options) => this.options = options;
 
@@ -22,7 +23,7 @@ namespace ApiRef.Core
         /// </summary>
         public void Generate()
         {
-            NestedNamespace namespaces = DLLImporter.Import(options.LibraryPath, options.FilterPublic);
+            namespaces = DLLImporter.Import(options.LibraryPath, options.FilterPublic);
             XmlNode members = null;
             string xmlPath = Path.Combine(Path.GetDirectoryName(options.LibraryPath), Path.GetFileNameWithoutExtension(options.LibraryPath) + ".xml");
 
@@ -72,7 +73,7 @@ namespace ApiRef.Core
                 memberAsCode = FormatTools.GetTypeAsCode(current.Type, baseType);
                 titleSize = 2;
 
-                md.InsertH1(FormatTools.TypeAsString(current.Type, current.Type));
+                md.InsertH1(FormatTools.TypeAsString(current.Type, current.Type).Replace("<", "\\<"));
             }
             else
             {
@@ -87,7 +88,7 @@ namespace ApiRef.Core
                     {
                         MarkdownBuilder tempMD = new MarkdownBuilder();
 
-                        member.FormatSummary(docs, tempMD, options.RootPath);
+                        member.FormatSummary(docs, tempMD, namespaces, options.RootPath, false);
 
                         description = tempMD.ToString();
                     }
@@ -98,7 +99,7 @@ namespace ApiRef.Core
                 {
                     memberAsCode = FormatTools.GetMemberAsCode(current.MemberInfo);
 
-                    md.InsertH2(FormatTools.GetMemberName(current.MemberInfo));
+                    md.InsertH2(FormatTools.GetMemberName(current.MemberInfo).Replace("<", "\\<"));
                 }
             }
 
@@ -109,11 +110,11 @@ namespace ApiRef.Core
             {
                 if ((current.Type != null || !current.MemberInfo.DeclaringType.IsEnum) && member != null)
                 {
-                    member.FormatSummary(docs, md, options.RootPath);
-                    member.FormatParamsAndReturn(docs, md, options.RootPath, titleSize);
-                    member.FormatExceptions(docs, md, options.RootPath, titleSize);
-                    member.FormatRemarks(docs, md, options.RootPath, titleSize);
-                    member.FormatExample(docs, md, options.RootPath, titleSize);
+                    member.FormatSummary(docs, md, namespaces, options.RootPath, true);
+                    member.FormatParamsAndReturn(docs, md, namespaces, options.RootPath, titleSize);
+                    member.FormatExceptions(docs, md, namespaces, options.RootPath, titleSize);
+                    member.FormatRemarks(docs, md, namespaces, options.RootPath, titleSize);
+                    member.FormatExample(docs, md, namespaces, options.RootPath, titleSize);
                 }
             }
 

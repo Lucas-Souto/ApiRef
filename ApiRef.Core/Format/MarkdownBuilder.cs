@@ -64,7 +64,7 @@ namespace ApiRef.Core.Format
         }
 
         /// <summary>
-        /// Insere um bloco de código de uma linguagem.
+        /// Insere um bloco de código multilinha.
         /// </summary>
         public void InsertCode(string code)
         {
@@ -72,6 +72,10 @@ namespace ApiRef.Core.Format
             builder.Append(code);
             builder.Append("\n```\n");
         }
+        /// <summary>
+        /// Insere um bloco de código de apenas uma linha.
+        /// </summary>
+        public void InsertInlineCode(string code) => builder.AppendFormat("`{0}`", code);
 
         /// <summary>
         /// Insere uma lista de colunas para uma tabela.
@@ -118,7 +122,11 @@ namespace ApiRef.Core.Format
         /// <summary>
         /// Insere um link.
         /// </summary>
-        public void InsertLink(string text, string link) => string.Format("[{0}]({1})", text, link);
+        public void InsertLink(string text, string link) => builder.AppendFormat("[{0}]({1})", text, link);
+        /// <summary>
+        /// Insere um link.
+        /// </summary>
+        public void InsertLink(string text, string link, string title) => builder.AppendFormat("[{0}]({1}#{2})", text, link, title);
 
         /// <summary>
         /// Insere um número específico de tabulações.
