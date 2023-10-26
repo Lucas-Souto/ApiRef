@@ -88,7 +88,7 @@ namespace ApiRef.Core
                     {
                         MarkdownBuilder tempMD = new MarkdownBuilder();
 
-                        member.FormatSummary(docs, tempMD, namespaces, options.RootPath, false);
+                        member.FormatSummary(tempMD, namespaces, options.RootPath, false);
 
                         description = tempMD.ToString().Replace("\r", "").Replace("\n", "<br />");
                     }
@@ -105,17 +105,16 @@ namespace ApiRef.Core
 
             if (memberAsCode.Length > 0) md.InsertCode(memberAsCode);
 
-            if (current.Type != null && current.Type.IsEnum) md.InsertTableColumns(0, "Nome", "Valor", "Descrição");
-            else
+            if ((current.Type != null || !current.MemberInfo.DeclaringType.IsEnum) && member != null)
             {
-                if ((current.Type != null || !current.MemberInfo.DeclaringType.IsEnum) && member != null)
-                {
-                    member.FormatSummary(docs, md, namespaces, options.RootPath, true);
-                    member.FormatParamsAndReturn(docs, md, namespaces, options.RootPath, titleSize);
-                    member.FormatExceptions(docs, md, namespaces, options.RootPath, titleSize);
-                    member.FormatRemarks(docs, md, namespaces, options.RootPath, titleSize);
-                    member.FormatExample(docs, md, namespaces, options.RootPath, titleSize);
-                }
+                member.FormatSummary(md, namespaces, options.RootPath, true);
+
+                if (current.Type != null && current.Type.IsEnum) md.InsertTableColumns(0, "Nome", "Valor", "Descrição");
+
+                member.FormatParamsAndReturn(md, namespaces, options.RootPath, titleSize);
+                member.FormatExceptions(md, namespaces, options.RootPath, titleSize);
+                member.FormatRemarks(md, namespaces, options.RootPath, titleSize);
+                member.FormatExample(md, namespaces, options.RootPath, titleSize);
             }
 
             foreach (KeyValuePair<string, NestedNamespace> pair in current.Child) MakeMD(pair.Value, docs, md);

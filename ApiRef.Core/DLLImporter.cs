@@ -167,7 +167,7 @@ namespace ApiRef.Core
             {
                 if (type.IsGenericType)
                 {
-                    builder.Append(type.Name.Split('`')[0]);
+                    builder.Append(Namespace(type.Namespace, type.Name.Split('`')[0]));
 
                     Type[] arguments = type.GetGenericArguments();
 
