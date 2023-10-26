@@ -41,7 +41,8 @@ namespace ApiRef.Core.Format
                 }
                 else if (node.Name == "returns")
                 {
-                    builder.InsertBold("Retorna: ");
+                    builder.InsertBold("Retorna");
+                    builder.InsertText(": ");
                     FormatText(node, builder, namespaces, rootDirectory);
                     builder.InsertBr();
                 }

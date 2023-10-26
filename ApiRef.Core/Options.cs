@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ApiRef.Core
+﻿namespace ApiRef.Core
 {
     /// <summary>
     /// Opções de geração para <see cref="ApiReference"/>.

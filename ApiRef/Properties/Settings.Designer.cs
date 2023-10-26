@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ApiRef.Gui.Properties
+namespace ApiRef.Properties
 {
 
 
