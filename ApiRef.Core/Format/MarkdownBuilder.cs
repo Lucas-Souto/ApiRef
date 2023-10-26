@@ -29,10 +29,30 @@ namespace ApiRef.Core.Format
         public void InsertH(string text, int number)
         {
             builder.Append('#', number);
-            builder.Append(' ', number);
+            builder.Append(' ');
             builder.Append(text);
             builder.Append('\n');
         }
+
+        /// <summary>
+        /// Insere um texto.
+        /// </summary>
+        public void InsertText(string text) => builder.Append(text);
+
+        /// <summary>
+        /// Insere um texto em negrito.
+        /// </summary>
+        public void InsertBold(string text) => builder.AppendFormat("**{0}**", text);
+
+        /// <summary>
+        /// Insere um br e um \n (quebra de linha).
+        /// </summary>
+        public void InsertBr() => builder.Append("<br />\n");
+
+        /// <summary>
+        /// Insere um \n (quebra de linha).
+        /// </summary>
+        public void InsertNl() => builder.Append('\n');
 
         /// <summary>
         /// Insere um item de uma lista.

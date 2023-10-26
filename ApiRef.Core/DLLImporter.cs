@@ -11,8 +11,7 @@ namespace ApiRef.Core
     /// </summary>
     public static class DLLImporter
     {
-        private const BindingFlags PublicFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-        private const BindingFlags AllFlag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        private const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
         private static readonly Dictionary<MemberTypes, int> MemberOrder = new Dictionary<MemberTypes, int>
         {
             { MemberTypes.Constructor, 0 },
@@ -49,17 +48,18 @@ namespace ApiRef.Core
             if (index == fullNameSpace.Length - 1)
             {
                 NestedNamespace newSpace = new NestedNamespace(Namespace(currentSpace.FullName, type.Name), type);
-                IEnumerable<MemberInfo> members = type.GetMembers(filterPublic ? PublicFlag : AllFlag).OrderBy((m) => MemberOrder[m.MemberType]);
+                IEnumerable<MemberInfo> members = type.GetMembers(Flags).OrderBy((m) => MemberOrder[m.MemberType]);
 
                 currentSpace.Child.Add(fullNameSpace[fullNameSpace.Length - 1], newSpace);
 
                 foreach (MemberInfo member in members)
                 {
                     if (type.IsEnum && (member.Name == "value__" || member.MemberType != MemberTypes.Field)) continue;
+                    else if (!Filter(member, filterPublic)) continue;
 
                     string result = member.Stringfy();
 
-                    if (result.Length > 0) newSpace.Child[result] = new NestedNamespace(Namespace(newSpace.FullName, member.Name), member);
+                    if (result.Length > 0) newSpace.Child[result] = new NestedNamespace(Namespace(newSpace.FullName, result), member);
                 }
             }
             else
@@ -165,10 +165,10 @@ namespace ApiRef.Core
 
             if (!type.IsGenericParameter)
             {
-                builder.Append(type.Name);
-
                 if (type.IsGenericType)
                 {
+                    builder.Append(type.Name.Split('`')[0]);
+
                     Type[] arguments = type.GetGenericArguments();
 
                     builder.Append('{');
@@ -182,6 +182,11 @@ namespace ApiRef.Core
                     builder.Remove(builder.Length - 1, 1);
                     builder.Append('}');
                 }
+                else
+                {
+                    if (type.IsArray) builder.Append(type.GetElementType().DocName(declaringGenerics, methodGenerics));
+                    else builder.Append(Namespace(type.Namespace, type.Name));
+                }
             }
             else
             {
@@ -190,8 +195,7 @@ namespace ApiRef.Core
                 else throw new Exception(string.Format("Tipo \"{0}\" não consta!", type.Name));
             }
 
-            if (type.IsPointer) builder.Append('*');
-            else if (type.IsArray)
+            if (type.IsArray)
             {
                 builder.Append('[');
 
@@ -213,6 +217,38 @@ namespace ApiRef.Core
             if (previous.Length > 0) return string.Format("{0}.{1}", previous, current);
 
             return current;
+        }
+
+        /// <summary>
+        /// Se <see cref="Options.FilterPublic"/>, só retorna true para public e protected;
+        /// </summary>
+        private static bool Filter(MemberInfo info, bool filterPublic)
+        {
+            if (filterPublic)
+            {
+                switch (info.MemberType)
+                {
+                    case MemberTypes.Field:
+                        FieldInfo field = (FieldInfo)info;
+
+                        return field.IsPublic || field.IsFamily;
+                    case MemberTypes.Property:
+                        PropertyInfo property = (PropertyInfo)info;
+                        MethodInfo get = property.GetMethod, set = property.SetMethod;
+
+                        return (get != null && (get.IsPublic || get.IsFamily)) || (set != null && (set.IsPublic || set.IsFamily));
+                    case MemberTypes.Method: case MemberTypes.Constructor:
+                        MethodBase method = (MethodBase)info;
+
+                        return method.IsPublic || method.IsFamily;
+                    case MemberTypes.Event:
+                        EventInfo @event = (EventInfo)info;
+
+                        return @event.AddMethod.IsPublic || @event.AddMethod.IsFamily;
+                }
+            }
+
+            return true;
         }
     }
 }

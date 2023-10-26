@@ -18,6 +18,14 @@ namespace ApiRef.Core.Format
             { "System.Boolean", "bool" },
             { "System.Void", "void" }, { "System.Object", "object" }
         };
+        private static Dictionary<string, string> OperatorString = new Dictionary<string, string>
+        {
+            { "op_Addition", "+" }, { "op_Subtraction", "-" }, { "op_Multiply", "*" }, { "op_Division", "/" }, { "op_Modulus", "%" },
+            { "op_BitwiseAnd", "&" }, { "op_BitwiseOr", "|" }, { "op_ExclusiveOr", "^" }, { "op_OnesComplement", "~" },
+            { "op_Equality", "==" }, { "op_Inequality", "!=" }, { "op_LessThan", "<" }, { "op_GreaterThan", ">" }, { "op_LessThanOrEqual", "<=" }, { "op_GreaterThanOrEqual", ">=" },
+            { "op_LeftShift", "<<" }, { "op_RightShift", ">>" },
+            { "op_UnaryNegation", "-" }, { "op_UnaryPlus", "+" }
+        };
 
         /// <summary>
         /// Retorna o tipo de acesso como string.
@@ -75,11 +83,17 @@ namespace ApiRef.Core.Format
         /// <summary>
         /// Formata o tipo para ser uma representação em código.
         /// </summary>
-        public static string TypeAsString(Type type, Type declaring = null)
+        public static string TypeAsString(Type type, Type declaring = null, bool isOut = false)
         {
             StringBuilder builder = new StringBuilder();
-            
-            if (type.IsGenericType)
+
+            if (type.IsByRef)
+            {
+                string key = isOut ? "out" : "ref";
+
+                builder.AppendFormat("{0} {1}", key, TypeAsString(type.GetElementType(), declaring));
+            }
+            else if (type.IsGenericType)
             {
                 Type genericDefinition = type.GetGenericTypeDefinition();
                 Type[] generics = type.GetGenericArguments();
@@ -121,6 +135,29 @@ namespace ApiRef.Core.Format
         }
 
         /// <summary>
+        /// Retorna o nome do membro, formatado.
+        /// </summary>
+        public static string GetMemberName(MemberInfo member)
+        {
+            switch (member.MemberType)
+            {
+                case MemberTypes.Constructor: return TypeAsString(member.DeclaringType, member.DeclaringType);
+                case MemberTypes.Method:
+                    MethodInfo method = (MethodInfo)member;
+
+                    if (method.IsSpecialName && method.Name.StartsWith("op_"))
+                    {
+                        if (method.Name == "op_Implicit") return "implicit operator";
+
+                        return string.Format("operator {0}", OperatorString[method.Name]);
+                    }
+
+                    return method.Name;
+                default: return member.Name;
+            }
+        }
+
+        /// <summary>
         /// Retorna uma representação do membro como um pedaço de código.
         /// </summary>
         public static string GetMemberAsCode(MemberInfo info)
@@ -144,6 +181,8 @@ namespace ApiRef.Core.Format
 
             if (field.IsStatic) builder.Append(" static");
 
+            if (field.IsInitOnly) builder.Append(" readonly");
+
             builder.AppendFormat(" {0} {1};", TypeAsString(field.FieldType, declaringType), field.Name);
         }
         private static void PropertyAsCode(PropertyInfo property, Type declaringType, StringBuilder builder)
@@ -158,7 +197,22 @@ namespace ApiRef.Core.Format
             else if (!declaringType.IsInterface && (get != null && get.IsAbstract) || (set != null && set.IsAbstract)) builder.Append(" abstract");
             else if (!declaringType.IsInterface && (get != null && get.IsVirtual) || (set != null && set.IsVirtual)) builder.Append(" virtual");
 
-            builder.AppendFormat(" {0} {1}", TypeAsString(property.PropertyType, declaringType), property.Name);
+            string type = TypeAsString(property.PropertyType, declaringType);
+            ParameterInfo[] parameters = property.GetIndexParameters();
+
+            if (parameters.Length > 0)
+            {
+                builder.AppendFormat(" {0} ", type);
+                builder.Append(declaringType.Name);
+                builder.Append('[');
+
+                for (int i = 0; i < parameters.Length; i++) builder.AppendFormat("{0} {1}, ", TypeAsString(parameters[i].ParameterType, declaringType), parameters[i].Name);
+
+                builder.Remove(builder.Length - 2, 2);
+                builder.Append(']');
+            }
+            else builder.AppendFormat(" {0} {1}", type, property.Name);
+
             builder.Append(" { ");
 
             if (get != null)
@@ -183,10 +237,10 @@ namespace ApiRef.Core.Format
             else if (!declaringType.IsInterface && method.IsAbstract) builder.Append(" abstract");
             else if (!declaringType.IsInterface && method.IsVirtual) builder.Append(" virtual");
 
-            if (method.IsConstructor) builder.AppendFormat(" {0}", TypeAsString(declaringType, declaringType));
+            if (method.IsConstructor) builder.AppendFormat(" {0}", GetMemberName(method));
             else
             {
-                builder.AppendFormat(" {0} {1}", TypeAsString(((MethodInfo)method).ReturnType, declaringType), method.Name);
+                builder.AppendFormat(" {0} {1}", TypeAsString(((MethodInfo)method).ReturnType, declaringType), GetMemberName(method));
 
                 Type[] generics = method.GetGenericArguments();
 
@@ -207,7 +261,7 @@ namespace ApiRef.Core.Format
 
             if (parameters.Length > 0)
             {
-                for (int i = 0; i < parameters.Length; i++) builder.AppendFormat("{0}, ", TypeAsString(parameters[i].ParameterType, declaringType));
+                for (int i = 0; i < parameters.Length; i++) builder.AppendFormat("{0} {1}, ", TypeAsString(parameters[i].ParameterType, declaringType, parameters[i].IsOut), parameters[i].Name);
 
                 builder.Remove(builder.Length - 2, 2);
             }
@@ -217,6 +271,9 @@ namespace ApiRef.Core.Format
         private static void EventAsCode(EventInfo @event, Type declaringType, StringBuilder builder)
         {
             builder.Append(GetAccessType(@event.AddMethod.IsPublic, @event.AddMethod.IsFamily, @event.AddMethod.IsAssembly));
+
+            if (@event.AddMethod.IsStatic) builder.Append(" static");
+
             builder.Append(" event ");
             builder.Append(TypeAsString(@event.EventHandlerType, declaringType));
             builder.AppendFormat(" {0};", @event.Name);

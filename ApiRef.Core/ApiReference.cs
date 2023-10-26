@@ -18,7 +18,7 @@ namespace ApiRef.Core
         public ApiReference(Options options) => this.options = options;
 
         /// <summary>
-        /// Gera a referência para uma dll, com base no seu xml, se tiver.
+        /// Gera a referência para uma dll, com ajuda do seu xml (se tiver).
         /// </summary>
         public void Generate()
         {
@@ -59,29 +59,38 @@ namespace ApiRef.Core
         /// <summary>
         /// Gera o conteúdo markdown de um namespace.
         /// </summary>
-        private string MakeMD(NestedNamespace current, XmlNode members, MarkdownBuilder builder = null)
+        private string MakeMD(NestedNamespace current, XmlNode docs, MarkdownBuilder builder = null)
         {
             MarkdownBuilder md = builder ?? new MarkdownBuilder();
-            XmlNode member = members.SelectSingleNode(string.Format("member[@name=\"{0}\"]", current.DocName));
+            XmlNode member = docs.SelectSingleNode(string.Format("member[@name=\"{0}\"]", current.DocName));
             string memberAsCode = string.Empty;
+            int titleSize;
 
             if (current.Type != null)
             {
                 Type baseType = current.Type.BaseType;
                 memberAsCode = FormatTools.GetTypeAsCode(current.Type, baseType);
+                titleSize = 2;
 
                 md.InsertH1(FormatTools.TypeAsString(current.Type, current.Type));
-
-                if (member != null) member.Format(md, 2);
             }
             else
             {
+                titleSize = 3;
+
                 if (current.MemberInfo.DeclaringType.IsEnum)
                 {
                     FieldInfo info = (FieldInfo)current.MemberInfo;
                     string description = string.Empty;
 
-                    if (member != null) description = "PLACEHOLDER";
+                    if (member != null)
+                    {
+                        MarkdownBuilder tempMD = new MarkdownBuilder();
+
+                        member.FormatSummary(docs, tempMD, options.RootPath);
+
+                        description = tempMD.ToString();
+                    }
 
                     md.InsertToTable(current.MemberInfo.Name, Convert.ChangeType(info.GetValue(null), Enum.GetUnderlyingType(info.FieldType)).ToString(), description);
                 }
@@ -89,18 +98,26 @@ namespace ApiRef.Core
                 {
                     memberAsCode = FormatTools.GetMemberAsCode(current.MemberInfo);
 
-                    if (current.MemberInfo.MemberType != MemberTypes.Constructor) md.InsertH2(current.MemberInfo.Name);
-                    else md.InsertH2(FormatTools.TypeAsString(current.MemberInfo.DeclaringType, current.MemberInfo.DeclaringType));
-
-                    if (member != null) member.Format(md, 3);
+                    md.InsertH2(FormatTools.GetMemberName(current.MemberInfo));
                 }
             }
 
             if (memberAsCode.Length > 0) md.InsertCode(memberAsCode);
 
             if (current.Type != null && current.Type.IsEnum) md.InsertTableColumns(0, "Nome", "Valor", "Descrição");
+            else
+            {
+                if ((current.Type != null || !current.MemberInfo.DeclaringType.IsEnum) && member != null)
+                {
+                    member.FormatSummary(docs, md, options.RootPath);
+                    member.FormatParamsAndReturn(docs, md, options.RootPath, titleSize);
+                    member.FormatExceptions(docs, md, options.RootPath, titleSize);
+                    member.FormatRemarks(docs, md, options.RootPath, titleSize);
+                    member.FormatExample(docs, md, options.RootPath, titleSize);
+                }
+            }
 
-            foreach (KeyValuePair<string, NestedNamespace> pair in current.Child) MakeMD(pair.Value, members, md);
+            foreach (KeyValuePair<string, NestedNamespace> pair in current.Child) MakeMD(pair.Value, docs, md);
 
             return md.ToString();
         }
