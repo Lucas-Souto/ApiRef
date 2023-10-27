@@ -163,40 +163,37 @@ namespace ApiRef.Core
         {
             StringBuilder builder = new StringBuilder();
 
-            if (!type.IsGenericParameter)
+            if (type.IsGenericType)
             {
-                if (type.IsGenericType)
+                builder.Append(Namespace(type.Namespace, type.Name.Split('`')[0]));
+
+                Type[] arguments = type.GetGenericArguments();
+
+                builder.Append('{');
+
+                for (int i = 0; i < arguments.Length; i++)
                 {
-                    builder.Append(Namespace(type.Namespace, type.Name.Split('`')[0]));
-
-                    Type[] arguments = type.GetGenericArguments();
-
-                    builder.Append('{');
-
-                    for (int i = 0; i < arguments.Length; i++)
-                    {
-                        builder.Append(arguments[i].DocName(declaringGenerics, methodGenerics));
-                        builder.Append(',');
-                    }
-
-                    builder.Remove(builder.Length - 1, 1);
-                    builder.Append('}');
+                    builder.Append(arguments[i].DocName(declaringGenerics, methodGenerics));
+                    builder.Append(',');
                 }
-                else
-                {
-                    if (type.IsArray) builder.Append(type.GetElementType().DocName(declaringGenerics, methodGenerics));
-                    else builder.Append(Namespace(type.Namespace, type.Name));
-                }
+
+                builder.Remove(builder.Length - 1, 1);
+                builder.Append('}');
             }
-            else
+            else if (type.IsGenericParameter)
             {
                 if (methodGenerics != null && methodGenerics.TryGetValue(type.Name, out int methodIndex)) builder.AppendFormat("``{0}", methodIndex);
                 else if (declaringGenerics != null && declaringGenerics.TryGetValue(type.Name, out int declaringIndex)) builder.AppendFormat("`{0}", declaringIndex);
                 else throw new Exception(string.Format("Tipo \"{0}\" não consta!", type.Name));
             }
-
-            if (type.IsArray)
+            else if (type.IsByRef)
             {
+                builder.Append(type.GetElementType().DocName(declaringGenerics, methodGenerics));
+                builder.Append('@');
+            }
+            else if (type.IsArray)
+            {
+                builder.Append(type.GetElementType().DocName(declaringGenerics, methodGenerics));
                 builder.Append('[');
 
                 int rank = type.GetArrayRank();
@@ -204,7 +201,7 @@ namespace ApiRef.Core
                 builder.Append(',', rank - 1);
                 builder.Append(']');
             }
-            else if (type.IsByRef) builder.Append('@');
+            else builder.Append(Namespace(type.Namespace, type.Name));
 
             return builder.ToString();
         }
