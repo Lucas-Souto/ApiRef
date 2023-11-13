@@ -174,32 +174,37 @@ namespace ApiRef.Core.Format
             }
 
             fullNamespace = fullNamespace.Substring(2);
-            string[] splitted = fullNamespace.Split('.');
+            int methodStart = fullNamespace.IndexOf('(');
+            string splitString = methodStart >= 0 ? fullNamespace.Substring(0, methodStart) : fullNamespace;
+            string[] splitted = splitString.Split('.');
+
+            if (splitted.Length > 0 && methodStart >= 0) splitted[splitted.Length - 1] += fullNamespace.Substring(methodStart);
+
             string text = string.Empty, title = string.Empty;
+            int typeIndex = FindMember(namespaces, splitted, out NestedNamespace type);
 
-            FindMember(namespaces, splitted, out NestedNamespace type, out NestedNamespace last);
-
-            if (last == namespaces || type == namespaces) builder.InsertText("[Não encontrado!]");
+            if (type == namespaces) builder.InsertText("[Não encontrado!]");
             else
             {
-                if (last.Type != null)
+                NestedNamespace member = typeIndex < splitted.Length - 1 ? type.Child[splitted[typeIndex + 1]] : null;
+                text = FormatTools.TypeAsString(type.Type.DeclaringType != null ? type.Type.DeclaringType : type.Type, type.Type);
+
+                if (member != null)
                 {
-                    text = FormatTools.TypeAsString(last.Type, type.Type);
-                    title = text;
+                    string memberName = FormatTools.GetMemberName(member.MemberInfo ?? member.Type).Replace("<", "\\<");
+                    text += string.Format(".{0}", memberName);
+                    title = memberName;
                 }
-                else if (last.MemberInfo != null)
-                {
-                    title = FormatTools.GetMemberName(last.MemberInfo);
-                    text = string.Format("{0}.{1}", FormatTools.TypeAsString(last.MemberInfo.DeclaringType, type.Type), title);
-                }
+                else title = text;
 
                 builder.InsertLink(text, string.Format("{0}/{1}.md", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
             }
         }
-        private static void FindMember(NestedNamespace namespaces, string[] splittedNamespace, out NestedNamespace type, out NestedNamespace last)
+        private static int FindMember(NestedNamespace namespaces, string[] splittedNamespace, out NestedNamespace type)
         {
             type = namespaces;
-            last = namespaces;;
+            NestedNamespace last = namespaces;
+            int typeIndex = 0;
 
             for (int i = 0; i < splittedNamespace.Length; i++)
             {
@@ -207,9 +212,15 @@ namespace ApiRef.Core.Format
                 {
                     last = newLast;
 
-                    if (last.Type != null && type.Type == null) type = last;
+                    if (last.Type != null && type.Type == null)
+                    {
+                        type = last;
+                        typeIndex = i;
+                    }
                 }
             }
+
+            return typeIndex;
         }
     }
 }
