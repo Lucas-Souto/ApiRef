@@ -30,7 +30,7 @@ class Program
 			}
 
 			options.RootPath = Path.GetFileName(tmp);
-			options.OutputDirectory = Directory.GetParent(tmp).FullName;
+			options.OutputDirectory = tmp;
 		}
 
 		new ApiReference(options).Generate();
