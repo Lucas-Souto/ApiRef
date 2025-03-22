@@ -22,15 +22,31 @@ class Program
 
 		if (args.Length > 1)
 		{
-			string tmp = Path.GetFullPath(Path.Combine(workingDir, args[1]));
+			bool readingOutput = false;
 
-			switch (tmp[tmp.Length -1])
+			for (int i = 1; i < args.Length; i++)
 			{
-				case '/': case '\\': tmp = tmp.Substring(0, tmp.Length - 1); break;
-			}
+				switch (args[i])
+				{
+					case "--all": options.FilterPublic = false; break;
+					case "-o": case "--output": readingOutput = true; break;
+					default:
+						if (readingOutput)
+						{
+							string tmp = Path.GetFullPath(Path.Combine(workingDir, args[i]));
 
-			options.RootPath = Path.GetFileName(tmp);
-			options.OutputDirectory = tmp;
+							switch (tmp[tmp.Length -1])
+							{
+								case '/': case '\\': tmp = tmp.Substring(0, tmp.Length - 1); break;
+							}
+
+							options.RootPath = Path.GetFileName(tmp);
+							options.OutputDirectory = tmp;
+							readingOutput = false;
+						}
+						break;
+				}
+			}
 		}
 
 		new ApiReference(options).Generate();

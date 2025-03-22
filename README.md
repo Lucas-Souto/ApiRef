@@ -3,5 +3,9 @@ ApiRef é uma ferramenta simples que realiza a leitura de arquivos .dll (C#) e .x
 
 # CLI
 ```
-/caminho/do/apiref biblioteca.dll [./caminho/de/destino]
+/caminho/do/apiref biblioteca.dll [argumentos...]
 ```
+
+## Argumentos Opcionais
+- `-o/--output`: Define o destino do resultado. `./api` por padrão.
+- `--all`: Desabilita o filtro por campos `public` e `protected`.
