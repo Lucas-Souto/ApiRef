@@ -22,8 +22,15 @@ class Program
 
 		if (args.Length > 1)
 		{
-			options.RootPath = Path.GetFileName(args[1]);
-			options.OutputDirectory = Path.GetFullPath(Path.Combine(workingDir, Directory.GetParent(args[1]).FullName));
+			string tmp = Path.GetFullPath(Path.Combine(workingDir, args[1]));
+
+			switch (tmp[tmp.Length -1])
+			{
+				case '/': case '\\': tmp = tmp.Substring(0, tmp.Length - 1); break;
+			}
+
+			options.RootPath = Path.GetFileName(tmp);
+			options.OutputDirectory = Directory.GetParent(tmp).FullName;
 		}
 
 		new ApiReference(options).Generate();

@@ -196,7 +196,7 @@ public static class XMLFormatter
 			}
 			else title = text;
 
-			builder.InsertLink(text, string.Format("{0}/{1}.md", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
+			builder.InsertLink(text, string.Format("/{0}/{1}.md", rootDirectory, type.Type.FullName.Replace('.', '/')), title.Replace("<", "\\<"));
 		}
 	}
 	private static int FindMember(NestedNamespace namespaces, string[] splittedNamespace, out NestedNamespace type)
